@@ -12,14 +12,13 @@ from sklearn.preprocessing import LabelEncoder
 import joblib
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.tree import DecisionTreeClassifier
-#from _encode import _encode, _unique
-from sklearn.preprocessing import OrdinalEncoder
+from ._encode import _encode, _unique
 
 
 def predictRuns(testInput):
     prediction = 0
     ### Your Code Here ###
-    with open('ipl_csv2/all_matches.csv') as f:
+    with open('../ipl_csv2/all_matches.csv') as f:
         #ipl_data = pd.read_csv(f, low_memory=False)
         ipl_data = pd.read_csv(f, dtype={"match_id":int,"season":"string","start_date":"string","venue":"string",
                                          "innings":int,"ball":float,"batting_team":"string","bowling_team":"string",
@@ -52,18 +51,17 @@ def predictRuns(testInput):
     ipl_data['venue'] = ipl_data['venue'].replace(['MA Chidambaram Stadium, Chepauk'],'MA Chidambaram Stadium')
     venue_encoder = LabelEncoder()
     team_encoder = LabelEncoder()
-    player_encoder = OrdinalEncoder(handle_unknown='use_encoded_value',
-                                 unknown_value=600, dtype=int)
+    player_encoder = LabelEncoderExt()
     ipl_data['venue'] = venue_encoder.fit_transform(ipl_data['venue'])
     ipl_data['batting_team'] = team_encoder.fit_transform(ipl_data['batting_team'])
     ipl_data['bowling_team'] = team_encoder.fit_transform(ipl_data['bowling_team'])
-    ipl_data['striker'] = player_encoder.fit_transform(ipl_data[['striker']])
-    ipl_data['bowler'] = player_encoder.fit_transform(ipl_data[['bowler']])
+    ipl_data['striker'] = player_encoder.fit_transform(ipl_data['striker'])
+    ipl_data['bowler'] = player_encoder.fit_transform(ipl_data['bowler'])
     anArray = ipl_data.to_numpy()
     anArray = anArray.astype(int)
-    X,y = anArray[:,:6], anArray[:,6]
+    X,y = anArray[:,:3], anArray[:,4]
     X = np.concatenate((np.eye(42)[anArray[:,0]], np.eye(2)[anArray[:,1]-1], np.eye(15)[anArray[:,2]],
-                        np.eye(15)[anArray[:,3]], np.eye(600)[anArray[:,4]], np.eye(600)[anArray[:,5]],), axis = 1)
+                        np.eye(15)[anArray[:,3]], np.eye(545)[anArray[:,4]], np.eye(429)[anArray[:,5]],), axis = 1)
     X_train , X_test, y_train, y_test = train_test_split(X,y,test_size = 0.25)
     clf = RandomForestClassifier(n_estimators=100, random_state=None)
     #clf = DecisionTreeClassifier(random_state=0)
@@ -78,13 +76,12 @@ def predictRuns(testInput):
     test_case['venue'] = venue_encoder.transform(test_case['venue'])
     test_case['batting_team'] = team_encoder.transform(test_case['batting_team'])
     test_case['bowling_team'] = team_encoder.transform(test_case['bowling_team'])
-    test_case['batsmen'] = player_encoder.transform(test_case[['batsmen']])
-    test_case['bowlers'] = player_encoder.transform(test_case[['bowlers']])
+    test_case['batsmen'] = player_encoder.transform(test_case['batsmen'])
+    test_case['bowlers'] = player_encoder.transform(test_case['bowlers'])
     #test_case = test_case[['venue', 'innings', 'batting_team', 'bowling_team']]
     testArray = test_case.to_numpy()
-    print(testArray)
     test_case = np.concatenate((np.eye(42)[testArray[:,0]], np.eye(2)[testArray[:,1]-1], np.eye(15)[testArray[:,2]],
-                                np.eye(15)[testArray[:,3]], np.eye(600)[anArray[:,4]], np.eye(600)[anArray[:,5]],), axis = 1)
+                                np.eye(15)[testArray[:,3]], np.eye(545)[anArray[:,4]], np.eye(429)[anArray[:,5]],), axis = 1)
     #prediction = linearRegressor.predict(test_case)
     prediction = clf.predict(test_case)
     print("Prediction Array: ", prediction)
@@ -92,49 +89,49 @@ def predictRuns(testInput):
 
 
 # In[ ]:
-# class LabelEncoderExt(object):
-#     def __init__(self):
-#         """
-#         It differs from LabelEncoder by handling new classes and providing a value for it [Unknown]
-#         Unknown will be added in fit and transform will take care of new item. It gives unknown class id
-#         """
-#         self.label_encoder = LabelEncoder()
-#         #self.classes_ = self.label_encoder.classes_
-#
-#     def fit(self, data_list):
-#         """
-#         This will fit the encoder for all the unique values and introduce unknown value
-#         :param data_list: A list of string
-#         :return: self
-#         """
-#         self.label_encoder = self.label_encoder.fit(list(data_list) + ['Unknown'])
-#         self.classes_ = _unique(data_list)
-#
-#         return self
-#
-#     def fit_transform(self, data_list):
-#         """
-#         This will fit the encoder for all the unique values and introduce unknown value
-#         :param data_list: A list of string
-#         :return: self
-#         """
-#         self.label_encoder = self.label_encoder.fit_transform(list(data_list) + ['Unknown'])
-#         self.classes_ = _unique(data_list, return_inverse=True)
-#
-#         return self
-#
-#     def transform(self, data_list):
-#         """
-#         This will transform the data_list to id list where the new values get assigned to Unknown class
-#         :param data_list:
-#         :return:
-#         """
-#         new_data_list = list(data_list)
-#         for unique_item in np.unique(data_list):
-#             if unique_item not in self.label_encoder.classes_:
-#                 new_data_list = ['Unknown' if x==unique_item else x for x in new_data_list]
-#
-#         return self.label_encoder.transform(new_data_list)
+class LabelEncoderExt(object):
+    def __init__(self):
+        """
+        It differs from LabelEncoder by handling new classes and providing a value for it [Unknown]
+        Unknown will be added in fit and transform will take care of new item. It gives unknown class id
+        """
+        self.label_encoder = LabelEncoder()
+        #self.classes_ = self.label_encoder.classes_
+
+    def fit(self, data_list):
+        """
+        This will fit the encoder for all the unique values and introduce unknown value
+        :param data_list: A list of string
+        :return: self
+        """
+        self.label_encoder = self.label_encoder.fit(list(data_list) + ['Unknown'])
+        self.classes_ = _unique(data_list)
+
+        return self
+
+    def fit_transform(self, data_list):
+        """
+        This will fit the encoder for all the unique values and introduce unknown value
+        :param data_list: A list of string
+        :return: self
+        """
+        self.label_encoder = self.label_encoder.fit_transform(list(data_list) + ['Unknown'])
+        self.classes_ = _unique(data_list, return_inverse=True)
+
+        return self
+
+    def transform(self, data_list):
+        """
+        This will transform the data_list to id list where the new values get assigned to Unknown class
+        :param data_list:
+        :return:
+        """
+        new_data_list = list(data_list)
+        for unique_item in np.unique(data_list):
+            if unique_item not in self.label_encoder.classes_:
+                new_data_list = ['Unknown' if x==unique_item else x for x in new_data_list]
+
+        return self.label_encoder.transform(new_data_list)
 
     #def fit_transform(self, data_list):
     #    new_data_list = list(data_list)
